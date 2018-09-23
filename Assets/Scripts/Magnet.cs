@@ -8,6 +8,7 @@ public delegate void magnetFired(float magnitude);
 public class Magnet : MonoBehaviour
 {
     public float MaxMagnetStrength = 10000f;
+    public float MaxMagnetMagnitude = 1000f;
     public float chargeFactor = 10f;
     public AudioClip magnetActionWeak;
     public AudioClip magnetActionStrong;
@@ -28,7 +29,8 @@ public class Magnet : MonoBehaviour
     }
     public GameObject magnetObject;
     public Image HealthBarFilling;
-    public magnetFired magnetFiredEvent;
+    public event magnetFired magnetFiredEvent;
+    public bool isCharging = false;
 
 
     public void setStrength(float strength)
@@ -58,6 +60,56 @@ public class Magnet : MonoBehaviour
     void Update()
     {
 
+        if (Input.GetMouseButtonUp(0) && isCharging)
+        {
+            audioSource.clip = CurrentMagnetStrength < MaxMagnetStrength ? magnetActionWeak : magnetActionStrong;
+
+            audioSource.Stop();
+            audioSource.Play();
+
+            isCharging = false;
+
+            if (magnetFiredEvent != null)
+                magnetFiredEvent(this.CurrentMagnetStrength);
+
+            return;
+        }
+
+        if (Input.GetMouseButtonDown(0) && !isCharging && CurrentMagnetStrength <= 0f)
+        {
+            audioSource.clip = magnetCharging;
+            audioSource.Play();
+            isCharging = true;
+            HealthBarFilling.gameObject.SetActive(true);
+            return;
+        }
+
+        float charger = Time.deltaTime * chargeFactor;
+        if (isCharging && CurrentMagnetStrength < MaxMagnetStrength)
+        {
+            // start Charging
+            CurrentMagnetStrength = CurrentMagnetStrength + charger;
+
+            //Debug.Log("Mah Chargelevel is: " + CurrentMagnetStrength);
+        }
+        else if (isCharging && CurrentMagnetStrength >= MaxMagnetStrength)
+        {
+            if (audioSource.clip.name != magnetFullyCharged.name)
+            {
+                audioSource.clip = magnetFullyCharged;
+                audioSource.Play();
+            }
+        }
+        else
+        {
+            if (CurrentMagnetStrength > 0f)
+                CurrentMagnetStrength = CurrentMagnetStrength - charger;
+            else
+            {
+                CurrentMagnetStrength = 0f;
+                HealthBarFilling.gameObject.SetActive(false);
+            }
+        }
     }
 
     private void FixedUpdate()
