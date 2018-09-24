@@ -33,11 +33,20 @@ public class PlayerScript : MonoBehaviour
             rb.velocity = new Vector2(rb.velocity.x, vForce);
             isFalling = true;
         }
+        Camera.main.transform.rotation = this.transform.rotation;
+        Camera.main.transform.localRotation = Quaternion.Euler(this.transform.localRotation.eulerAngles * -1);
 
     }
 
     private void OnCollisionStay2D(Collision2D collision)
     {
         isFalling = false;
+    }
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.tag == "DeathPlane")
+        {
+            this.transform.localPosition = new Vector3(-4, -1, 0);
+        }
     }
 }
