@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Magnet
   - DeathPlane
+  - NextLevelTag
   layers:
   - Default
   - TransparentFX

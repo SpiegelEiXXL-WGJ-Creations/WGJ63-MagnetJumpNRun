@@ -7,6 +7,13 @@ using UnityEngine.UI;
 public delegate void magnetFired(float magnitude);
 public class Magnet : MonoBehaviour
 {
+    public enum PlayMode
+    {
+        ClickToCharge = 0,
+        WheelToCharge = 1
+    }
+
+    [Header("Settings")]
     public float MaxMagnetStrength = 10000f;
     public float MaxMagnetMagnitude = 1000f;
     public float chargeFactor = 10f;
@@ -15,6 +22,10 @@ public class Magnet : MonoBehaviour
     public AudioClip magnetCharging;
     public AudioClip magnetFullyCharged;
     public AudioSource audioSource;
+
+    public PlayMode mode;
+
+    [Header("Read-Only")]
     private float _CurrentMagnetStrength = 0f;
     public float CurrentMagnetStrength
     {
@@ -29,8 +40,8 @@ public class Magnet : MonoBehaviour
     }
     public GameObject magnetObject;
     public Image HealthBarFilling;
-    public event magnetFired magnetFiredEvent;
     public bool isCharging = false;
+    public event magnetFired magnetFiredEvent;
 
 
     public void setStrength(float strength)
@@ -52,72 +63,96 @@ public class Magnet : MonoBehaviour
             if (ii.name == "HealthBarFilling")
                 HealthBarFilling = ii;
         }
-        HealthBarFilling.gameObject.SetActive(false);
+        if (mode == PlayMode.ClickToCharge)
+            HealthBarFilling.gameObject.SetActive(false);
 
     }
 
     // Update is called once per frame
     void Update()
     {
-
-        if (Input.GetMouseButtonUp(0) && isCharging)
+        if (mode == PlayMode.ClickToCharge)
         {
-            audioSource.clip = CurrentMagnetStrength < MaxMagnetStrength ? magnetActionWeak : magnetActionStrong;
-
-            audioSource.Stop();
-            audioSource.Play();
-
-            isCharging = false;
-
-            if (magnetFiredEvent != null)
-                magnetFiredEvent(this.CurrentMagnetStrength);
-
-            return;
-        }
-
-        if (Input.GetMouseButtonDown(0) && !isCharging && CurrentMagnetStrength <= 0f)
-        {
-            audioSource.clip = magnetCharging;
-            audioSource.Play();
-            isCharging = true;
-            HealthBarFilling.gameObject.SetActive(true);
-            return;
-        }
-
-        float charger = Time.deltaTime * chargeFactor;
-        if (isCharging && CurrentMagnetStrength < MaxMagnetStrength)
-        {
-            // start Charging
-            CurrentMagnetStrength = CurrentMagnetStrength + charger;
-
-            //Debug.Log("Mah Chargelevel is: " + CurrentMagnetStrength);
-        }
-        else if (isCharging && CurrentMagnetStrength >= MaxMagnetStrength)
-        {
-            if (audioSource.clip.name != magnetFullyCharged.name)
+            if (Input.GetMouseButtonUp(0) && isCharging)
             {
-                audioSource.clip = magnetFullyCharged;
+                audioSource.clip = CurrentMagnetStrength < MaxMagnetStrength ? magnetActionWeak : magnetActionStrong;
+
+                audioSource.Stop();
                 audioSource.Play();
+
+                isCharging = false;
+
+                if (magnetFiredEvent != null)
+                    magnetFiredEvent(this.CurrentMagnetStrength);
+
+                return;
             }
-        }
-        else
-        {
-            if (CurrentMagnetStrength > 0f)
-                CurrentMagnetStrength = CurrentMagnetStrength - charger;
+
+            if (Input.GetMouseButtonDown(0) && !isCharging && CurrentMagnetStrength <= 0f)
+            {
+                audioSource.clip = magnetCharging;
+                audioSource.Play();
+                isCharging = true;
+                HealthBarFilling.gameObject.SetActive(true);
+                return;
+            }
+
+            float charger = Time.deltaTime * chargeFactor;
+            if (isCharging && CurrentMagnetStrength < MaxMagnetStrength)
+            {
+                // start Charging
+                CurrentMagnetStrength = CurrentMagnetStrength + charger;
+
+            }
+            else if (isCharging && CurrentMagnetStrength >= MaxMagnetStrength)
+            {
+                if (audioSource.clip.name != magnetFullyCharged.name)
+                {
+                    audioSource.clip = magnetFullyCharged;
+                    audioSource.Play();
+                }
+            }
             else
             {
-                CurrentMagnetStrength = 0f;
-                HealthBarFilling.gameObject.SetActive(false);
+                if (CurrentMagnetStrength > 0f)
+                    CurrentMagnetStrength = CurrentMagnetStrength - charger;
+                else
+                {
+                    CurrentMagnetStrength = 0f;
+                    HealthBarFilling.gameObject.SetActive(false);
+                }
             }
+        }
+        else if (mode == PlayMode.WheelToCharge)
+        {
+            CurrentMagnetStrength += Input.GetAxis("Mouse ScrollWheel") * 100;
+            if (Input.GetMouseButtonUp(0))
+            {
+                audioSource.clip = CurrentMagnetStrength < MaxMagnetStrength ? magnetActionWeak : magnetActionStrong;
+
+                audioSource.Stop();
+                audioSource.Play();
+
+                isCharging = false;
+
+                if (magnetFiredEvent != null)
+                    magnetFiredEvent(this.CurrentMagnetStrength);
+
+                return;
+            }
+
         }
     }
 
     private void FixedUpdate()
     {
+
+
         Vector3 mPos = Camera.main.ScreenToWorldPoint(
             Input.mousePosition);
         mPos.z = magnetObject.transform.position.z;
         magnetObject.transform.position = mPos;
+
 
     }
 }
